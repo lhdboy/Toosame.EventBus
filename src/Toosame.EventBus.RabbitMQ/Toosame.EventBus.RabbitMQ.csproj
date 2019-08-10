@@ -7,6 +7,8 @@
     <Product>Toosame</Product>
     <Description>事件总线的RabbitMQ实现</Description>
     <Version>1.1.0</Version>
+    <RepositoryUrl>https://github.com/lhdboy/Toosame.RabbitMQ</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
