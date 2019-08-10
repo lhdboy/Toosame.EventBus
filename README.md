@@ -1,4 +1,4 @@
-# Toosame.RabbitMQ
+# Toosame.EventBus
 
 An Event Bus Based on RabbitMQ, whose core code is from [eShopOnContainers](https://github.com/dotnet-architecture/eShopOnContainers), I just pulled it out and made some extensions, fixes and improvements.
 
@@ -107,7 +107,7 @@ You can subscribe to the event you just created here.
 
 ### 2.Setup on `Startup.cs`
 
-Standard£º
+StandardÂ£Âº
 
 ```CSharp
 public void ConfigureServices(IServiceCollection services)
