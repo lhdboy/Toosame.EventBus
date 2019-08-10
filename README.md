@@ -7,7 +7,7 @@ I currently only use it for microservices. If your project has only one ASP. NET
 ## Install from Nuget.org
 
 ```
-PM> Install-Package Toosame.EventBus.RabbitMQ -Version 1.0.9
+PM> Install-Package Toosame.EventBus.RabbitMQ -Version 1.1.1
 ```
 
 ## Using (Publish Event)

@@ -7,7 +7,7 @@ namespace Toosame.EventBus.Abstractions
     {
         void Publish(IntegrationEvent @event);
 
-        void Puslish(IntegrationEvent[] @event);
+        void Puslish(params IntegrationEvent[] @event);
 
         void StartSubscribe();
 
