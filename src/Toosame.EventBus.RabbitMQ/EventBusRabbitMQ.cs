@@ -85,10 +85,10 @@ namespace Toosame.EventBus.RabbitMQ
 
         public void Publish(IntegrationEvent @event)
         {
-            Puslish(new IntegrationEvent[] { @event });
+            Publish(new IntegrationEvent[] { @event });
         }
 
-        public void Puslish(params IntegrationEvent[] @event)
+        public void Publish(params IntegrationEvent[] @event)
         {
             if (@event == null || @event.Length == 0) return;
 

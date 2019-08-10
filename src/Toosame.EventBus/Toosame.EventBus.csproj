@@ -6,7 +6,7 @@
     <Authors>Toosame</Authors>
     <Product>Toosame</Product>
     <Description>事件总线的抽象和接口</Description>
-    <Version>1.0.6</Version>
+    <Version>1.0.7</Version>
     <RepositoryUrl>https://github.com/lhdboy/Toosame.EventBus</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
