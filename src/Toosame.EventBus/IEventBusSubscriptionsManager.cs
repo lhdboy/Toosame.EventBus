@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using Toosame.EventBus.Abstractions;
+﻿using Toosame.EventBus.Abstractions;
 using Toosame.EventBus.Events;
+using System;
+using System.Collections.Generic;
 using static Toosame.EventBus.InMemoryEventBusSubscriptionsManager;
 
 namespace Toosame.EventBus

@@ -1,4 +1,5 @@
 ﻿using Toosame.EventBus.Events;
+using System;
 
 namespace Toosame.EventBus.Abstractions
 {

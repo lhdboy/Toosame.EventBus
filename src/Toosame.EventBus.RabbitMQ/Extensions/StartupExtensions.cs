@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using Autofac;
+using Autofac.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
@@ -22,7 +24,16 @@ namespace Toosame.EventBus.RabbitMQ.Extensions
             return app;
         }
 
-        public static void AddEventBus(this IServiceCollection services,
+        public static IServiceProvider AddEventBusAsAutofacService(this IServiceCollection services,
+            RabbitMQOption rabbitMqOption,
+            Action<ICollection<Type>> eventHandlerOption)
+        {
+            var container = new ContainerBuilder();
+            container.Populate(AddEventBus(services, rabbitMqOption, eventHandlerOption));
+            return new AutofacServiceProvider(container.Build());
+        }
+
+        public static IServiceCollection AddEventBus(this IServiceCollection services,
             RabbitMQOption rabbitMqOption,
             Action<ICollection<Type>> eventHandlerOption)
         {
@@ -54,6 +65,7 @@ namespace Toosame.EventBus.RabbitMQ.Extensions
             services.AddSingleton<IEventBus, EventBusRabbitMQ>(sp =>
             {
                 var rabbitMQPersistentConnection = sp.GetRequiredService<IRabbitMQPersistentConnection>();
+                var iLifetimeScope = sp.GetRequiredService<ILifetimeScope>();
                 var logger = sp.GetRequiredService<ILogger<EventBusRabbitMQ>>();
                 var eventBusSubcriptionsManager = sp.GetRequiredService<IEventBusSubscriptionsManager>();
 
@@ -65,7 +77,7 @@ namespace Toosame.EventBus.RabbitMQ.Extensions
 
                 return new EventBusRabbitMQ(rabbitMQPersistentConnection,
                     logger,
-                    sp,
+                    iLifetimeScope,
                     eventBusSubcriptionsManager,
                     rabbitMqOption.EventBusBrokeName,
                     subscriptionClientName,
@@ -82,6 +94,8 @@ namespace Toosame.EventBus.RabbitMQ.Extensions
             {
                 services.AddTransient(handler);
             }
+
+            return services;
         }
 
         public static void AddEventHandler<EH>(this ICollection<Type> types)

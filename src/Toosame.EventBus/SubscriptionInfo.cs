@@ -7,7 +7,7 @@ namespace Toosame.EventBus
         public class SubscriptionInfo
         {
             public bool IsDynamic { get; }
-            public Type HandlerType { get; }
+            public Type HandlerType{ get; }
 
             private SubscriptionInfo(bool isDynamic, Type handlerType)
             {
