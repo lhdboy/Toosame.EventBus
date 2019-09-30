@@ -1,18 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Toosame</Authors>
     <Product>Toosame</Product>
     <Description>事件总线的抽象和接口</Description>
-    <Version>1.0.7</Version>
+    <Version>1.0.9</Version>
     <RepositoryUrl>https://github.com/lhdboy/Toosame.EventBus</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
-  </ItemGroup>
 
 </Project>

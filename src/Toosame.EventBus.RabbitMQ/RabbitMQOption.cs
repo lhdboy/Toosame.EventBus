@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Toosame.EventBus.RabbitMQ
+﻿namespace Toosame.EventBus.RabbitMQ
 {
     public class RabbitMQOption
     {
