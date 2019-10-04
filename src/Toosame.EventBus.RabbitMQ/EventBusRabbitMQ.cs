@@ -106,7 +106,7 @@ namespace Toosame.EventBus.RabbitMQ
 
                 foreach (IntegrationEvent item in @event)
                 {
-                    var message = JsonSerializer.Serialize(item);
+                    var message = JsonSerializer.Serialize(item, item.GetType());
                     var body = Encoding.UTF8.GetBytes(message);
 
                     policy.Execute(() =>
