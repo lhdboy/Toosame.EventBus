@@ -1,15 +1,21 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
 using Polly;
 using Polly.Retry;
+
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
+
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+
 using Toosame.EventBus.Abstractions;
 using Toosame.EventBus.Events;
 using Toosame.EventBus.Extensions;
@@ -84,12 +90,15 @@ namespace Toosame.EventBus.RabbitMQ
 
         public void Publish(params IntegrationEvent[] @event)
         {
-            if (@event == null || @event.Length == 0) return;
+            Publish(@event.AsEnumerable());
+        }
+
+        public void Publish(IEnumerable<IntegrationEvent> @event)
+        {
+            if (@event == null || !@event.Any()) return;
 
             if (!_persistentConnection.IsConnected)
-            {
                 _persistentConnection.TryConnect();
-            }
 
             var policy = RetryPolicy.Handle<BrokerUnreachableException>()
                 .Or<SocketException>()
@@ -106,6 +115,8 @@ namespace Toosame.EventBus.RabbitMQ
 
                 foreach (IntegrationEvent item in @event)
                 {
+                    if (item == default) return;
+
                     var message = JsonSerializer.Serialize(item, item.GetType());
                     var body = Encoding.UTF8.GetBytes(message);
 

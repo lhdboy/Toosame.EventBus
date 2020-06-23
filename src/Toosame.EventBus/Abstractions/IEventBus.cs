@@ -1,4 +1,6 @@
-﻿using Toosame.EventBus.Events;
+﻿using System.Collections.Generic;
+
+using Toosame.EventBus.Events;
 
 namespace Toosame.EventBus.Abstractions
 {
@@ -7,6 +9,8 @@ namespace Toosame.EventBus.Abstractions
         void Publish(IntegrationEvent @event);
 
         void Publish(params IntegrationEvent[] @event);
+
+        void Publish(IEnumerable<IntegrationEvent> @event);
 
         void StartSubscribe();
 

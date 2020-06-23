@@ -7,7 +7,7 @@ I currently only use it for microservices. If your project has only one ASP. NET
 ## Install from Nuget.org
 
 ```
-PM> Install-Package Toosame.EventBus.RabbitMQ -Version 1.1.2
+PM> Install-Package Toosame.EventBus.RabbitMQ -Version 1.1.6
 ```
 
 ## Using (Publish Event)
@@ -58,7 +58,7 @@ public class YourEventHandler : IIntegrationEventHandler<YourEvent>
 ### 3. Publish Event in Controller
 
 ```
-public class HomeController : Controller
+public class HomeController : ControllerBase
 {
     private readonly IEventBus _eventBus;
 
@@ -78,7 +78,7 @@ public class HomeController : Controller
 
 ***
 
-## Setup
+## Setup (ASP.NET Core 3.1)
 
 You can subscribe to the event you just created here.
 
@@ -107,48 +107,12 @@ You can subscribe to the event you just created here.
 
 ### 2.Setup on `Startup.cs`
 
-Standard£º
-
 ```CSharp
 public void ConfigureServices(IServiceCollection services)
 {
+    services.AddControllers();
+
     services.AddEventBus(Configuration.GetSection("RabbitMQ").Get<RabbitMQOption>(),
-                    eventHandlers =>
-                    {
-                        eventHandlers.AddEventHandler<YourEventHandler1>();
-                        eventHandlers.AddEventHandler<YourEventHandler2>();
-                    });
-
-    services.AddMvc()
-        .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
-}
-
-public void Configure(IApplicationBuilder app, IHostingEnvironment env)
-{
-    app.UseEventBus(eventBus =>
-    {
-        eventBus.Subscribe<YourEvent1, YourEventHandler1>();
-        eventBus.Subscribe<YourEvent2, YourEventHandler2>();
-    });
-
-    app.UseMvc();
-}
-```
-
-Using `Autofac`:
-
-1. Please install `Autofac.Extensions.DependencyInjection`  package.
-
-2. As below:
-
-```CSharp
-public IServiceProvider ConfigureServices(IServiceCollection services)
-{
-    services.AddMvc()
-        .SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
-        .AddControllersAsServices();
-
-    return services.AddEventBusAsAutofacService(Configuration.GetSection("RabbitMQ").Get<RabbitMQOption>(),
                 eventHandlers =>
             {
                 eventHandlers.AddEventHandler<YourEventHandler1>();
@@ -157,7 +121,7 @@ public IServiceProvider ConfigureServices(IServiceCollection services)
 }
 
 
-public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 {
     app.UseEventBus(eventBus =>
     {
@@ -165,6 +129,9 @@ public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         eventBus.Subscribe<YourEvent2, YourEventHandler2>();
     });
 
-    app.UseMvc();
+    app.UseEndpoints(endpoints =>
+    {
+        endpoints.MapControllers();
+    });
 }
 ```
