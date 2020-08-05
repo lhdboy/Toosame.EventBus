@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
 using RabbitMQ.Client;
+
 using System;
 using System.Collections.Generic;
+
 using Toosame.EventBus.Abstractions;
 
 namespace Toosame.EventBus.RabbitMQ.Extensions
@@ -39,17 +42,17 @@ namespace Toosame.EventBus.RabbitMQ.Extensions
 
             //添加RabbitMQ持久化连接单例
             services.AddSingleton<IRabbitMQPersistentConnection, DefaultRabbitMQPersistentConnection>(sp
-                => new DefaultRabbitMQPersistentConnection(new ConnectionFactory()
-                {
-                    HostName = hostName,
-                    Port = port,
-                    UserName = rabbitMqOption.EventBusUserName,
-                    Password = rabbitMqOption.EventBusPassword
-                },
-                sp.GetRequiredService<ILogger<DefaultRabbitMQPersistentConnection>>(),
-                rabbitMqOption.EventBusRetryCount));
-
-            var subscriptionClientName = rabbitMqOption.SubscriptionClientName;
+                => new DefaultRabbitMQPersistentConnection(
+                    new ConnectionFactory()
+                    {
+                        HostName = hostName,
+                        Port = port,
+                        UserName = rabbitMqOption.EventBusUserName,
+                        Password = rabbitMqOption.EventBusPassword
+                    },
+                    sp.GetRequiredService<ILogger<DefaultRabbitMQPersistentConnection>>(),
+                    rabbitMqOption.EventBusRetryCount,
+                    rabbitMqOption.ClientProvidedName));
 
             services.AddSingleton<IEventBus, EventBusRabbitMQ>(sp =>
             {
@@ -68,7 +71,7 @@ namespace Toosame.EventBus.RabbitMQ.Extensions
                     sp,
                     eventBusSubcriptionsManager,
                     rabbitMqOption.EventBusBrokeName,
-                    subscriptionClientName,
+                    rabbitMqOption.SubscriptionClientName,
                     retryCount);
             });
 

@@ -16,16 +16,19 @@ namespace Toosame.EventBus.RabbitMQ
         private readonly IConnectionFactory _connectionFactory;
         private readonly ILogger<DefaultRabbitMQPersistentConnection> _logger;
         private readonly int _retryCount;
+        private readonly string _clientProvidedName;
         IConnection _connection;
         bool _disposed;
 
         object sync_root = new object();
 
-        public DefaultRabbitMQPersistentConnection(IConnectionFactory connectionFactory, ILogger<DefaultRabbitMQPersistentConnection> logger, int retryCount = 5)
+        public DefaultRabbitMQPersistentConnection(
+            IConnectionFactory connectionFactory, ILogger<DefaultRabbitMQPersistentConnection> logger, int retryCount = 5, string clientProvidedName = null)
         {
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _retryCount = retryCount;
+            _clientProvidedName = clientProvidedName;
         }
 
         public bool IsConnected
@@ -79,7 +82,7 @@ namespace Toosame.EventBus.RabbitMQ
                 policy.Execute(() =>
                 {
                     _connection = _connectionFactory
-                          .CreateConnection();
+                          .CreateConnection(_clientProvidedName);
                 });
 
                 if (IsConnected)
