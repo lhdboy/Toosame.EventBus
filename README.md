@@ -7,7 +7,7 @@ I currently only use it for microservices. If your project has only one ASP. NET
 ## Install from Nuget.org
 
 ```
-PM> Install-Package Toosame.EventBus.RabbitMQ -Version 1.1.9
+PM> Install-Package Toosame.EventBus.RabbitMQ -Version 2.0.0
 ```
 
 ## Using (Publish Event)
@@ -21,7 +21,7 @@ PM> Install-Package Toosame.EventBus.RabbitMQ -Version 1.1.9
 Create `YourEvent.cs`
 
 ```
-public class YourEvent : IntegrationEvent
+public record class YourEvent : IntegrationEvent
 {
     public string Name { get; set; }
 
@@ -78,12 +78,12 @@ public class HomeController : ControllerBase
 
 ***
 
-## Setup (ASP.NET Core 3.1)
+## Setup (ASP.NET Core 6.0)
 
 You can subscribe to the event you just created here.
 
 1. Configure appsettings.json
-2. Setup on `Startup.cs`
+2. Setup on `Program.cs`
 
 ### 1. Configure appsettings.json
 
@@ -105,33 +105,19 @@ You can subscribe to the event you just created here.
 }
 ```
 
-### 2.Setup on `Startup.cs`
+### 2.Setup on `Program.cs`
 
 ```CSharp
-public void ConfigureServices(IServiceCollection services)
-{
-    services.AddControllers();
-
-    services.AddEventBus(Configuration.GetSection("RabbitMQ").Get<RabbitMQOption>(),
+    builder.Services.AddEventBus(Configuration.GetSection("RabbitMQ").Get<RabbitMQOption>(),
                 eventHandlers =>
             {
                 eventHandlers.AddEventHandler<YourEventHandler1>();
                 eventHandlers.AddEventHandler<YourEventHandler2>();
             });
-}
-
-
-public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-{
+    
     app.UseEventBus(eventBus =>
     {
         eventBus.Subscribe<YourEvent1, YourEventHandler1>();
         eventBus.Subscribe<YourEvent2, YourEventHandler2>();
     });
-
-    app.UseEndpoints(endpoints =>
-    {
-        endpoints.MapControllers();
-    });
-}
 ```
