@@ -7,7 +7,7 @@ I currently only use it for microservices. If your project has only one ASP. NET
 ## Install from Nuget.org
 
 ```
-PM> Install-Package Toosame.EventBus.RabbitMQ -Version 2.0.0
+PM> Install-Package Toosame.EventBus.RabbitMQ -Version 2.0.1
 ```
 
 ## Using (Publish Event)
@@ -114,7 +114,7 @@ You can subscribe to the event you just created here.
                 eventHandlers.AddEventHandler<YourEventHandler1>();
                 eventHandlers.AddEventHandler<YourEventHandler2>();
             });
-    
+
     app.UseEventBus(eventBus =>
     {
         eventBus.Subscribe<YourEvent1, YourEventHandler1>();
