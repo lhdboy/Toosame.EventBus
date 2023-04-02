@@ -29,6 +29,20 @@ namespace Toosame.EventBus.RabbitMQ.Extensions
             RabbitMQOption rabbitMqOption,
             Action<ICollection<Type>> eventHandlerOption)
         {
+            AddEventBus(services, rabbitMqOption);
+
+            ICollection<Type> eventHandlers = new List<Type>();
+
+            eventHandlerOption?.Invoke(eventHandlers);
+
+            foreach (var handler in eventHandlers)
+            {
+                services.AddTransient(handler);
+            }
+        }
+
+        public static void AddEventBus(this IServiceCollection services, RabbitMQOption rabbitMqOption)
+        {
             int port = 5672;
             string hostName = rabbitMqOption.EventBusConnection;
 
@@ -76,15 +90,6 @@ namespace Toosame.EventBus.RabbitMQ.Extensions
             });
 
             services.AddSingleton<IEventBusSubscriptionsManager, InMemoryEventBusSubscriptionsManager>();
-
-            ICollection<Type> eventHandlers = new List<Type>();
-
-            eventHandlerOption?.Invoke(eventHandlers);
-
-            foreach (var handler in eventHandlers)
-            {
-                services.AddTransient(handler);
-            }
         }
 
         public static void AddEventHandler<EH>(this ICollection<Type> types)
