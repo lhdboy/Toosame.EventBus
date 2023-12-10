@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using RabbitMQ.Client;
@@ -13,10 +13,10 @@ namespace Toosame.EventBus.RabbitMQ.Extensions
 {
     public static class StartupExtensions
     {
-        public static IApplicationBuilder UseEventBus(this IApplicationBuilder app,
+        public static IHost UseEventBus(this IHost app,
             Action<IEventBus> subscribeOption)
         {
-            var eventBus = app.ApplicationServices.GetRequiredService<IEventBus>();
+            var eventBus = app.Services.GetRequiredService<IEventBus>();
 
             subscribeOption?.Invoke(eventBus);
 
@@ -46,7 +46,7 @@ namespace Toosame.EventBus.RabbitMQ.Extensions
             int port = 5672;
             string hostName = rabbitMqOption.EventBusConnection;
 
-            if (rabbitMqOption.EventBusConnection.Contains(":"))
+            if (rabbitMqOption.EventBusConnection.Contains(':'))
             {
                 string[] hostPort = rabbitMqOption.EventBusConnection.Split(':');
 
@@ -86,7 +86,8 @@ namespace Toosame.EventBus.RabbitMQ.Extensions
                     eventBusSubcriptionsManager,
                     rabbitMqOption.EventBusBrokeName,
                     rabbitMqOption.SubscriptionClientName,
-                    retryCount);
+                    retryCount,
+                    rabbitMqOption.EventBusConsumerRetryCount);
             });
 
             services.AddSingleton<IEventBusSubscriptionsManager, InMemoryEventBusSubscriptionsManager>();

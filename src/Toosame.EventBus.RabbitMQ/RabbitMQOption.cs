@@ -23,6 +23,11 @@
         public int EventBusRetryCount { get; set; }
 
         /// <summary>
+        /// Queue Retry Count
+        /// </summary>
+        public int EventBusConsumerRetryCount { get; set; }
+
+        /// <summary>
         /// ExchangeName
         /// </summary>
         public string EventBusBrokeName { get; set; }

@@ -8,6 +8,8 @@ namespace Toosame.EventBus.RabbitMQ
     {
         bool IsConnected { get; }
 
+        string ClientProvidedName { get; }
+
         bool TryConnect();
 
         IModel CreateModel();
