@@ -2,6 +2,7 @@
 
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
+		<RootNamespace>Toosame.EventBus.RabbitMQ</RootNamespace>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<Authors>Toosame</Authors>
 		<Product>Toosame</Product>
@@ -10,16 +11,18 @@
 		<RepositoryUrl>https://github.com/lhdboy/Toosame.EventBus</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<IsAotCompatible>true</IsAotCompatible>
+		<EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+		<InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.Extensions.Configuration.Binder.SourceGeneration</InterceptorsNamespaces>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.3" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.3" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+	
+	<ItemGroup>
 		<PackageReference Include="Polly" Version="8.5.2" />
 		<PackageReference Include="RabbitMQ.Client" Version="7.1.1" />
-		<PackageReference Include="System.Text.Json" Version="9.0.3" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -1,4 +1,4 @@
-# Toosame.EventBus
+﻿# Toosame.EventBus
 
 An Event Bus Based on RabbitMQ, whose core code is from [eShopOnContainers](https://github.com/dotnet-architecture/eShopOnContainers), I just pulled it out and made some extensions, fixes and improvements.
 
@@ -7,7 +7,7 @@ I currently only use it for microservices. If your project has only one ASP. NET
 ## Install from Nuget.org
 
 ```
-PM> Install-Package Toosame.EventBus.RabbitMQ -Version 2.0.1
+PM> Install-Package Toosame.EventBus.RabbitMQ -Version 2.1.0
 ```
 
 ## Using (Publish Event)
@@ -78,7 +78,7 @@ public class HomeController : ControllerBase
 
 ***
 
-## Setup (ASP.NET Core 6.0)
+## Setup (ASP.NET Core 9.0)
 
 You can subscribe to the event you just created here.
 
@@ -94,10 +94,7 @@ You can subscribe to the event you just created here.
       "Default": "Warning"
     }
   },
-  "RabbitMQ": {
-    "EventBusConnection": "<yourRabbitMqHost>[:port(default 5672)]",
-    "EventBusUserName": "<rabbitMqUserName>",
-    "EventBusPassword": "<rabbitMqPassword>",
+  "RabbitMQOption": {
     "EventBusRetryCount": 5,
     "EventBusBrokeName": "<rabbitMqExchangeName>",
     "SubscriptionClientName": "<queueName>" //It's better to have different microservices with different names
@@ -108,16 +105,12 @@ You can subscribe to the event you just created here.
 ### 2.Setup on `Program.cs`
 
 ```CSharp
-    builder.Services.AddEventBus(Configuration.GetSection("RabbitMQ").Get<RabbitMQOption>(),
-                eventHandlers =>
-            {
-                eventHandlers.AddEventHandler<YourEventHandler1>();
-                eventHandlers.AddEventHandler<YourEventHandler2>();
-            });
+    builder.Services.AddEventBus(Configuration.GetConnectionString("RabbitMQ"), Configuration.GetSection("RabbitMQOption"))
+        .AddSubscription<YourEvent1, YourEventHandler1>();
+```
 
-    app.UseEventBus(eventBus =>
-    {
-        eventBus.Subscribe<YourEvent1, YourEventHandler1>();
-        eventBus.Subscribe<YourEvent2, YourEventHandler2>();
-    });
+### 3.Add `YourHostedService.cs`
+
+```CSharp
+    builder.Services.AddHostedService<YourHostedService>();
 ```

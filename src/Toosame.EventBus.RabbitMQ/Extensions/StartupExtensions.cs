@@ -1,81 +1,92 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using RabbitMQ.Client;
 
 using System;
-using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 
 using Toosame.EventBus.Abstractions;
+using Toosame.EventBus.Events;
+using Toosame.EventBus.RabbitMQ;
 
-namespace Toosame.EventBus.RabbitMQ.Extensions
+namespace Microsoft.Extensions.Hosting
 {
     public static class StartupExtensions
     {
-        public static void AddEventBus(this IServiceCollection services,
-            string connectionString,
-            RabbitMQOption rabbitMqOption,
-            Action<ICollection<Type>> eventHandlerOption)
+        public static IEventBusBuilder ConfigureJsonOptions(this IEventBusBuilder eventBusBuilder, Action<JsonSerializerOptions> configure)
         {
-            AddEventBus(services, connectionString, rabbitMqOption);
-
-            ICollection<Type> eventHandlers = [];
-
-            eventHandlerOption?.Invoke(eventHandlers);
-
-            foreach (var handler in eventHandlers)
+            eventBusBuilder.Services.Configure<EventBusSubscriptionInfo>(o =>
             {
-                services.AddTransient(handler);
-            }
+                configure(o.JsonSerializerOptions);
+            });
+
+            return eventBusBuilder;
+        }
+
+        public static IEventBusBuilder AddSubscription<T, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TH>(this IEventBusBuilder eventBusBuilder)
+            where T : IntegrationEvent
+            where TH : class, IIntegrationEventHandler<T>
+        {
+            // Use keyed services to register multiple handlers for the same event type
+            // the consumer can use IKeyedServiceProvider.GetKeyedService<IIntegrationEventHandler>(typeof(T)) to get all
+            // handlers for the event type.
+            eventBusBuilder.Services.AddKeyedTransient<IIntegrationEventHandler, TH>(typeof(T));
+
+            eventBusBuilder.Services.Configure<EventBusSubscriptionInfo>(o =>
+            {
+                // Keep track of all registered event types and their name mapping. We send these event types over the message bus
+                // and we don't want to do Type.GetType, so we keep track of the name mapping here.
+
+                // This list will also be used to subscribe to events from the underlying message broker implementation.
+                o.EventTypes[typeof(T).Name] = typeof(T);
+            });
+
+            return eventBusBuilder;
         }
 
         /// <summary>
         /// Add EventBus Service
         /// </summary>
-        /// <param name="services">IServiceCollection</param>
+        /// <param name="services">IHostApplicationBuilder</param>
         /// <param name="connectionString">amqp://user:pass@hostName:port/vhost</param>
-        /// <param name="rabbitMqOption">RabbitMQ Option</param>
-        public static void AddEventBus(this IServiceCollection services, string connectionString, RabbitMQOption rabbitMqOption)
+        public static IEventBusBuilder AddEventBus(
+            this IHostApplicationBuilder builder, string connectionString, IConfiguration config)
         {
-            services.AddSingleton<IRabbitMQPersistentConnection, DefaultRabbitMQPersistentConnection>(sp
+            // Options support
+            builder.Services.Configure<RabbitMQOption>(config);
+
+            builder.Services.AddSingleton<IRabbitMQPersistentConnection, DefaultRabbitMQPersistentConnection>(sp
                 => new DefaultRabbitMQPersistentConnection(
                     new ConnectionFactory()
                     {
                         Uri = new Uri(connectionString)
                     },
                     sp.GetRequiredService<ILogger<DefaultRabbitMQPersistentConnection>>(),
-                    rabbitMqOption.EventBusRetryCount,
-                    rabbitMqOption.ClientProvidedName));
+                    sp.GetRequiredService<IOptions<RabbitMQOption>>()));
 
-            services.AddSingleton<IEventBus, EventBusRabbitMQ>(sp =>
+            builder.Services.AddSingleton<IEventBus, EventBusRabbitMQ>(sp =>
             {
-                var rabbitMQPersistentConnection = sp.GetRequiredService<IRabbitMQPersistentConnection>();
                 var logger = sp.GetRequiredService<ILogger<EventBusRabbitMQ>>();
-                var eventBusSubcriptionsManager = sp.GetRequiredService<IEventBusSubscriptionsManager>();
+                var rabbitMQPersistentConnection = sp.GetRequiredService<IRabbitMQPersistentConnection>();
 
-                var retryCount = 5;
-                if (rabbitMqOption.EventBusRetryCount > 0)
-                {
-                    retryCount = rabbitMqOption.EventBusRetryCount;
-                }
-
-                return new EventBusRabbitMQ(rabbitMQPersistentConnection,
+                return new EventBusRabbitMQ(
+                    rabbitMQPersistentConnection,
                     logger,
                     sp,
-                    eventBusSubcriptionsManager,
-                    rabbitMqOption.EventBusBrokeName,
-                    rabbitMqOption.SubscriptionClientName,
-                    retryCount,
-                    rabbitMqOption.EventBusConsumerRetryCount);
+                    sp.GetRequiredService<IOptions<RabbitMQOption>>(),
+                    sp.GetRequiredService<IOptions<EventBusSubscriptionInfo>>());
             });
 
-            services.AddSingleton<IEventBusSubscriptionsManager, InMemoryEventBusSubscriptionsManager>();
+            return new EventBusBuilder(builder.Services);
         }
 
-        public static void AddEventHandler<EH>(this ICollection<Type> types)
-            where EH : class, IIntegrationEventHandler
+        private class EventBusBuilder(IServiceCollection services) : IEventBusBuilder
         {
-            types.Add(typeof(EH));
+            public IServiceCollection Services => services;
         }
     }
 }

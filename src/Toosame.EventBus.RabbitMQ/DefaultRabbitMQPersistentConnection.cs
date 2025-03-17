@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using Polly;
 using Polly.Retry;
@@ -19,20 +20,21 @@ namespace Toosame.EventBus.RabbitMQ
     {
         readonly IConnectionFactory _connectionFactory;
         readonly ILogger<DefaultRabbitMQPersistentConnection> _logger;
-        readonly int _retryCount;
-        readonly string _clientProvidedName;
+        readonly RabbitMQOption _option;
+
         readonly SemaphoreSlim _semaphoreSlim = new(1);
 
         IConnection _connection;
         bool _disposed;
 
         public DefaultRabbitMQPersistentConnection(
-            IConnectionFactory connectionFactory, ILogger<DefaultRabbitMQPersistentConnection> logger, int retryCount = 5, string clientProvidedName = null)
+            IConnectionFactory connectionFactory,
+            ILogger<DefaultRabbitMQPersistentConnection> logger,
+            IOptions<RabbitMQOption> options)
         {
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _retryCount = retryCount;
-            _clientProvidedName = clientProvidedName;
+            _option = options.Value;
         }
 
         public bool IsConnected
@@ -43,7 +45,7 @@ namespace Toosame.EventBus.RabbitMQ
             }
         }
 
-        public string ClientProvidedName => _clientProvidedName;
+        public string ClientProvidedName => _option.ClientProvidedName;
 
         public Task<IChannel> CreateModelAsync()
         {
@@ -79,7 +81,7 @@ namespace Toosame.EventBus.RabbitMQ
 
             var policy = RetryPolicy.Handle<SocketException>()
                 .Or<BrokerUnreachableException>()
-                .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                .WaitAndRetry(_option.EventBusRetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                 {
                     _logger.LogWarning(ex, "RabbitMQ Client could not connect after {TimeOut}s ({ExceptionMessage})", $"{time.TotalSeconds:n1}", ex.Message);
                 }
@@ -92,7 +94,7 @@ namespace Toosame.EventBus.RabbitMQ
             }
 
             _connection = await policy.Execute(
-                () => _connectionFactory.CreateConnectionAsync(_clientProvidedName));
+                () => _connectionFactory.CreateConnectionAsync(_option.ClientProvidedName));
 
             if (IsConnected)
             {

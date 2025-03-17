@@ -1,6 +1,4 @@
-﻿using Toosame.EventBus.Events;
-
-namespace Toosame.EventBus.RabbitMQ.Events
+﻿namespace Toosame.EventBus.Events
 {
     public record class DeadletterEvent : IntegrationEvent
     {
