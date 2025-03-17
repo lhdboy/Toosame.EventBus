@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using Toosame.EventBus.Abstractions;
 using Toosame.EventBus.Events;
+
 using static Toosame.EventBus.InMemoryEventBusSubscriptionsManager;
 
 namespace Toosame.EventBus
@@ -9,7 +11,9 @@ namespace Toosame.EventBus
     public interface IEventBusSubscriptionsManager
     {
         bool IsEmpty { get; }
+
         event EventHandler<string> OnEventRemoved;
+
         void AddDynamicSubscription<TH>(string eventName)
            where TH : IDynamicIntegrationEventHandler;
 
@@ -24,11 +28,17 @@ namespace Toosame.EventBus
             where TH : IDynamicIntegrationEventHandler;
 
         bool HasSubscriptionsForEvent<T>() where T : IntegrationEvent;
+
         bool HasSubscriptionsForEvent(string eventName);
+
         Type GetEventTypeByName(string eventName);
+
         void Clear();
+
         IEnumerable<SubscriptionInfo> GetHandlersForEvent<T>() where T : IntegrationEvent;
+
         IEnumerable<SubscriptionInfo> GetHandlersForEvent(string eventName);
+
         string GetEventKey<T>();
     }
 }

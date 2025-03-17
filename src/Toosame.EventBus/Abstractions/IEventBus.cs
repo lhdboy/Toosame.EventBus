@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using Toosame.EventBus.Events;
 
@@ -6,19 +7,19 @@ namespace Toosame.EventBus.Abstractions
 {
     public interface IEventBus
     {
-        void Publish(IntegrationEvent @event);
+        Task PublishAsync(IntegrationEvent @event);
 
-        void Publish(params IntegrationEvent[] @event);
+        Task PublishAsync(params IntegrationEvent[] @event);
 
-        void Publish(IEnumerable<IntegrationEvent> @event);
+        Task PublishAsync(IEnumerable<IntegrationEvent> @event);
 
-        void StartSubscribe();
+        Task StartSubscribeAsync();
 
-        void Subscribe<T, TH>()
+        Task SubscribeAsync<T, TH>()
             where T : IntegrationEvent
             where TH : IIntegrationEventHandler<T>;
 
-        void SubscribeDynamic<TH>(string eventName)
+        Task SubscribeDynamicAsync<TH>(string eventName)
             where TH : IDynamicIntegrationEventHandler;
 
         void UnsubscribeDynamic<TH>(string eventName)

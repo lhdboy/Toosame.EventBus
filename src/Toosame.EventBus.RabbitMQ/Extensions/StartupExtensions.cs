@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using RabbitMQ.Client;
@@ -13,25 +12,14 @@ namespace Toosame.EventBus.RabbitMQ.Extensions
 {
     public static class StartupExtensions
     {
-        public static IHost UseEventBus(this IHost app,
-            Action<IEventBus> subscribeOption)
-        {
-            var eventBus = app.Services.GetRequiredService<IEventBus>();
-
-            subscribeOption?.Invoke(eventBus);
-
-            eventBus.StartSubscribe();
-
-            return app;
-        }
-
         public static void AddEventBus(this IServiceCollection services,
+            string connectionString,
             RabbitMQOption rabbitMqOption,
             Action<ICollection<Type>> eventHandlerOption)
         {
-            AddEventBus(services, rabbitMqOption);
+            AddEventBus(services, connectionString, rabbitMqOption);
 
-            ICollection<Type> eventHandlers = new List<Type>();
+            ICollection<Type> eventHandlers = [];
 
             eventHandlerOption?.Invoke(eventHandlers);
 
@@ -41,28 +29,19 @@ namespace Toosame.EventBus.RabbitMQ.Extensions
             }
         }
 
-        public static void AddEventBus(this IServiceCollection services, RabbitMQOption rabbitMqOption)
+        /// <summary>
+        /// Add EventBus Service
+        /// </summary>
+        /// <param name="services">IServiceCollection</param>
+        /// <param name="connectionString">amqp://user:pass@hostName:port/vhost</param>
+        /// <param name="rabbitMqOption">RabbitMQ Option</param>
+        public static void AddEventBus(this IServiceCollection services, string connectionString, RabbitMQOption rabbitMqOption)
         {
-            int port = 5672;
-            string hostName = rabbitMqOption.EventBusConnection;
-
-            if (rabbitMqOption.EventBusConnection.Contains(':'))
-            {
-                string[] hostPort = rabbitMqOption.EventBusConnection.Split(':');
-
-                hostName = hostPort[0];
-                port = Convert.ToInt32(hostPort[1]);
-            }
-
-            //添加RabbitMQ持久化连接单例
             services.AddSingleton<IRabbitMQPersistentConnection, DefaultRabbitMQPersistentConnection>(sp
                 => new DefaultRabbitMQPersistentConnection(
                     new ConnectionFactory()
                     {
-                        HostName = hostName,
-                        Port = port,
-                        UserName = rabbitMqOption.EventBusUserName,
-                        Password = rabbitMqOption.EventBusPassword
+                        Uri = new Uri(connectionString)
                     },
                     sp.GetRequiredService<ILogger<DefaultRabbitMQPersistentConnection>>(),
                     rabbitMqOption.EventBusRetryCount,

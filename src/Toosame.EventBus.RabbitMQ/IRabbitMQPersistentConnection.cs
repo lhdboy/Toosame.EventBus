@@ -1,17 +1,18 @@
 ﻿using RabbitMQ.Client;
+
 using System;
+using System.Threading.Tasks;
 
 namespace Toosame.EventBus.RabbitMQ
 {
-    public interface IRabbitMQPersistentConnection
-        : IDisposable
+    public interface IRabbitMQPersistentConnection : IAsyncDisposable
     {
         bool IsConnected { get; }
 
         string ClientProvidedName { get; }
 
-        bool TryConnect();
+        Task<bool> TryConnectAsync();
 
-        IModel CreateModel();
+        Task<IChannel> CreateModelAsync();
     }
 }
