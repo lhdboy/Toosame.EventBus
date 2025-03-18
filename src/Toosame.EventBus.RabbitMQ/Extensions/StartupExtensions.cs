@@ -56,10 +56,21 @@ namespace Microsoft.Extensions.Hosting
         public static IEventBusBuilder AddEventBus(
             this IHostApplicationBuilder builder, string connectionString, IConfiguration config)
         {
-            // Options support
-            builder.Services.Configure<RabbitMQOption>(config);
+            return AddEventBus(builder.Services, connectionString, config);
+        }
 
-            builder.Services.AddSingleton<IRabbitMQPersistentConnection, DefaultRabbitMQPersistentConnection>(sp
+        /// <summary>
+        /// Add EventBus Service
+        /// </summary>
+        /// <param name="services">IServiceCollection</param>
+        /// <param name="connectionString">amqp://user:pass@hostName:port/vhost</param>
+        public static IEventBusBuilder AddEventBus(
+            this IServiceCollection services, string connectionString, IConfiguration config)
+        {
+            // Options support
+            services.Configure<RabbitMQOption>(config);
+
+            services.AddSingleton<IRabbitMQPersistentConnection, DefaultRabbitMQPersistentConnection>(sp
                 => new DefaultRabbitMQPersistentConnection(
                     new ConnectionFactory()
                     {
@@ -68,7 +79,7 @@ namespace Microsoft.Extensions.Hosting
                     sp.GetRequiredService<ILogger<DefaultRabbitMQPersistentConnection>>(),
                     sp.GetRequiredService<IOptions<RabbitMQOption>>()));
 
-            builder.Services.AddSingleton<IEventBus, EventBusRabbitMQ>(sp =>
+            services.AddSingleton<IEventBus, EventBusRabbitMQ>(sp =>
             {
                 var logger = sp.GetRequiredService<ILogger<EventBusRabbitMQ>>();
                 var rabbitMQPersistentConnection = sp.GetRequiredService<IRabbitMQPersistentConnection>();
@@ -81,7 +92,7 @@ namespace Microsoft.Extensions.Hosting
                     sp.GetRequiredService<IOptions<EventBusSubscriptionInfo>>());
             });
 
-            return new EventBusBuilder(builder.Services);
+            return new EventBusBuilder(services);
         }
 
         private class EventBusBuilder(IServiceCollection services) : IEventBusBuilder
