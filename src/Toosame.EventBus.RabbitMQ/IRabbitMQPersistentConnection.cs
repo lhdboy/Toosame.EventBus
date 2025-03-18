@@ -11,6 +11,8 @@ namespace Toosame.EventBus.RabbitMQ
 
         string ClientProvidedName { get; }
 
+        IConnection GetConnectionAsync();
+
         Task<bool> TryConnectAsync();
 
         Task<IChannel> CreateModelAsync();

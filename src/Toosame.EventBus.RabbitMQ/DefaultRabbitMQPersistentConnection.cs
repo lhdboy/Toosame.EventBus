@@ -47,6 +47,8 @@ namespace Toosame.EventBus.RabbitMQ
 
         public string ClientProvidedName => _option.ClientProvidedName;
 
+        public IConnection GetConnectionAsync() => _connection;
+
         public Task<IChannel> CreateModelAsync()
         {
             if (!IsConnected)
