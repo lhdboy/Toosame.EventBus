@@ -16,6 +16,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Toosame.EventBus.Abstractions;
@@ -128,21 +129,30 @@ namespace Toosame.EventBus.RabbitMQ
             }
         }
 
-        public async Task StartDeadletterAsync()
+        public async Task StartDeadletterAsync(CancellationToken cancellationToken)
         {
-            await StartDeadletterConsumeAsync();
+            await StartDeadletterConsumeAsync(cancellationToken);
         }
 
-        public async Task StartAsync()
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await StartBasicConsumeAsync();
+            await StartBasicConsumeAsync(cancellationToken);
         }
 
-        async Task StartBasicConsumeAsync()
+        async Task StartBasicConsumeAsync(CancellationToken cancellationToken)
         {
-            _consumerChannel ??= await CreateConsumerChannelAsync();
-
             _logger.LogTrace("Starting RabbitMQ basic consume");
+
+            _consumerChannel ??= await CreateConsumerChannelAsync(cancellationToken);
+
+            foreach (var (eventName, _) in _subscriptionInfo.EventTypes)
+            {
+                await _consumerChannel.QueueBindAsync(
+                    queue: _option.SubscriptionClientName,
+                    exchange: _option.EventBusBrokeName,
+                    routingKey: eventName,
+                    cancellationToken: cancellationToken);
+            }
 
             var consumer = new AsyncEventingBasicConsumer(_consumerChannel);
 
@@ -151,36 +161,31 @@ namespace Toosame.EventBus.RabbitMQ
             await _consumerChannel.BasicConsumeAsync(
                 queue: _option.SubscriptionClientName,
                 autoAck: false,
-                consumer: consumer);
-
-            foreach (var (eventName, _) in _subscriptionInfo.EventTypes)
-            {
-                await _consumerChannel.QueueBindAsync(
-                    queue: _option.SubscriptionClientName,
-                    exchange: _option.EventBusBrokeName,
-                    routingKey: eventName);
-            }
+                consumer: consumer,
+                cancellationToken);
         }
 
-        async Task StartDeadletterConsumeAsync()
+        async Task StartDeadletterConsumeAsync(CancellationToken cancellationToken)
         {
-            _deadletterChannel ??= await CreateDeadletterConsumerChannelAsync();
-
             _logger.LogTrace("Starting RabbitMQ deadletter consume");
+
+            _deadletterChannel ??= await CreateDeadletterConsumerChannelAsync(cancellationToken);
+
+            //绑定死信队列
+            await _consumerChannel.QueueBindAsync(_deadletterQueueName,
+                _deadletterBrokerName,
+                _deadletterRoutingKey,
+                cancellationToken: cancellationToken);
 
             var deadletterConsumer = new AsyncEventingBasicConsumer(_deadletterChannel);
 
             deadletterConsumer.ReceivedAsync += AsyncDeadletterConsumer_Received;
 
-            //绑定死信队列
-            await _consumerChannel.QueueBindAsync(_deadletterQueueName,
-                _deadletterBrokerName,
-                _deadletterRoutingKey);
-
             await _consumerChannel.BasicConsumeAsync(
                 queue: _deadletterQueueName,
                 autoAck: false,
-                consumer: deadletterConsumer);
+                consumer: deadletterConsumer,
+                cancellationToken: cancellationToken);
         }
 
         async Task AsyncDeadletterConsumer_Received(object sender, BasicDeliverEventArgs eventArgs)
@@ -311,7 +316,7 @@ namespace Toosame.EventBus.RabbitMQ
             await _consumerChannel.BasicRejectAsync(eventArgs.DeliveryTag, false);
         }
 
-        async Task<IChannel> CreateConsumerChannelAsync()
+        async Task<IChannel> CreateConsumerChannelAsync(CancellationToken cancellationToken)
         {
             if (!_persistentConnection.IsConnected)
                 await _persistentConnection.TryConnectAsync();
@@ -321,7 +326,9 @@ namespace Toosame.EventBus.RabbitMQ
             var channel = await _persistentConnection.CreateModelAsync();
 
             await channel.ExchangeDeclareAsync(
-                exchange: _option.EventBusBrokeName, type: "direct");
+                exchange: _option.EventBusBrokeName,
+                type: "direct",
+                cancellationToken: cancellationToken);
 
             await channel.QueueDeclareAsync(queue: _option.SubscriptionClientName,
                 durable: true,
@@ -331,21 +338,22 @@ namespace Toosame.EventBus.RabbitMQ
                 {
                     ["x-dead-letter-exchange"] = _deadletterBrokerName,
                     ["x-dead-letter-routing-key"] = _deadletterRoutingKey
-                });
+                },
+                cancellationToken: cancellationToken);
 
             channel.CallbackExceptionAsync += async (sender, ea) =>
             {
                 _logger.LogWarning(ea.Exception, "Recreating RabbitMQ consumer channel");
 
                 _consumerChannel.Dispose();
-                _consumerChannel = await CreateConsumerChannelAsync();
-                await StartBasicConsumeAsync();
+                _consumerChannel = await CreateConsumerChannelAsync(cancellationToken);
+                await StartBasicConsumeAsync(cancellationToken);
             };
 
             return channel;
         }
 
-        async Task<IChannel> CreateDeadletterConsumerChannelAsync()
+        async Task<IChannel> CreateDeadletterConsumerChannelAsync(CancellationToken cancellationToken)
         {
             if (!_persistentConnection.IsConnected)
                 await _persistentConnection.TryConnectAsync();
@@ -355,22 +363,24 @@ namespace Toosame.EventBus.RabbitMQ
             var channel = await _persistentConnection.CreateModelAsync();
             await channel.ExchangeDeclareAsync(
                 exchange: _deadletterBrokerName,
-                type: "direct");
+                type: "direct",
+                cancellationToken: cancellationToken);
 
             await channel.QueueDeclareAsync(queue: _deadletterQueueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: null);
+                arguments: null,
+                cancellationToken: cancellationToken);
 
             channel.CallbackExceptionAsync += async (sender, ea) =>
             {
                 _logger.LogWarning(ea.Exception, "Recreating RabbitMQ deadletter consumer channel");
 
                 _deadletterChannel.Dispose();
-                _deadletterChannel = await CreateDeadletterConsumerChannelAsync();
+                _deadletterChannel = await CreateDeadletterConsumerChannelAsync(cancellationToken);
 
-                await StartDeadletterConsumeAsync();
+                await StartDeadletterConsumeAsync(cancellationToken);
             };
 
             return channel;
