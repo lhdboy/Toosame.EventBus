@@ -94,13 +94,14 @@ namespace Toosame.EventBus.RabbitMQ
             }
 
             await channel.ExchangeDeclareAsync(
-                exchange: _option.EventBusBrokeName, type: "direct");
+                exchange: _option.EventBusBrokeName,
+                type: "direct");
 
             foreach (IntegrationEvent item in @event)
             {
                 if (item == default) return;
 
-                var routingKey = @event.GetType().Name;
+                var routingKey = item.GetType().Name;
                 var body = SerializeMessage(item);
 
                 if (_logger.IsEnabled(LogLevel.Trace))
