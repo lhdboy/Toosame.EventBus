@@ -128,6 +128,16 @@ namespace Toosame.EventBus.RabbitMQ
             }
         }
 
+        public async Task StartDeadletterAsync()
+        {
+            await StartDeadletterConsumeAsync();
+        }
+
+        public async Task StartAsync()
+        {
+            await StartBasicConsumeAsync();
+        }
+
         async Task StartBasicConsumeAsync()
         {
             _consumerChannel ??= await CreateConsumerChannelAsync();
@@ -394,16 +404,6 @@ namespace Toosame.EventBus.RabbitMQ
             }
 
             return true;
-        }
-
-        public async Task StartDeadletterAsync()
-        {
-            await StartDeadletterConsumeAsync();
-        }
-
-        public async Task StartAsync()
-        {
-            await StartBasicConsumeAsync();
         }
 
         public async ValueTask DisposeAsync()

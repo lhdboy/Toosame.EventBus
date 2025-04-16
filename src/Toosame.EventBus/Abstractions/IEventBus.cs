@@ -12,5 +12,9 @@ namespace Toosame.EventBus.Abstractions
         Task PublishAsync(params IntegrationEvent[] @event);
 
         Task PublishAsync(IEnumerable<IntegrationEvent> @event);
+
+        Task StartDeadletterAsync();
+
+        Task StartAsync();
     }
 }
