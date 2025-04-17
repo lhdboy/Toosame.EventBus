@@ -91,8 +91,9 @@ namespace Toosame.EventBus.RabbitMQ
 
             if (_connection != null)
             {
-                await _connection.DisposeAsync();
-                _connection = null;
+                _semaphoreSlim.Release();
+
+                return true;
             }
 
             _connection = await policy.Execute(
@@ -120,31 +121,25 @@ namespace Toosame.EventBus.RabbitMQ
             }
         }
 
-        async Task OnConnectionBlocked(object sender, ConnectionBlockedEventArgs e)
+        Task OnConnectionBlocked(object sender, ConnectionBlockedEventArgs e)
         {
-            if (_disposed) return;
-
             _logger.LogWarning("A RabbitMQ connection is shutdown. Trying to re-connect...");
 
-            await TryConnectAsync();
+            return Task.CompletedTask;
         }
 
-        async Task OnCallbackException(object sender, CallbackExceptionEventArgs e)
+        Task OnCallbackException(object sender, CallbackExceptionEventArgs e)
         {
-            if (_disposed) return;
-
             _logger.LogWarning("A RabbitMQ connection throw exception. Trying to re-connect...");
 
-            await TryConnectAsync();
+            return Task.CompletedTask;
         }
 
-        async Task OnConnectionShutdown(object sender, ShutdownEventArgs reason)
+        Task OnConnectionShutdown(object sender, ShutdownEventArgs reason)
         {
-            if (_disposed) return;
-
             _logger.LogWarning("A RabbitMQ connection is on shutdown. Trying to re-connect...");
 
-            await TryConnectAsync();
+            return Task.CompletedTask;
         }
     }
 }
