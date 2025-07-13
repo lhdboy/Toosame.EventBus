@@ -1,6 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using RabbitMQ.Client;
@@ -70,27 +69,18 @@ namespace Microsoft.Extensions.Hosting
             // Options support
             services.Configure<RabbitMQOption>(config);
 
-            services.AddSingleton<IRabbitMQPersistentConnection, DefaultRabbitMQPersistentConnection>(sp
-                => new DefaultRabbitMQPersistentConnection(
-                    new ConnectionFactory()
-                    {
-                        Uri = new Uri(connectionString)
-                    },
-                    sp.GetRequiredService<ILogger<DefaultRabbitMQPersistentConnection>>(),
-                    sp.GetRequiredService<IOptions<RabbitMQOption>>()));
-
-            services.AddSingleton<IEventBus, EventBusRabbitMQ>(sp =>
+            services.AddSingleton<IConnection>(sp =>
             {
-                var logger = sp.GetRequiredService<ILogger<EventBusRabbitMQ>>();
-                var rabbitMQPersistentConnection = sp.GetRequiredService<IRabbitMQPersistentConnection>();
+                var factory = new ConnectionFactory()
+                {
+                    Uri = new Uri(connectionString),
+                    ClientProvidedName = sp.GetRequiredService<IOptions<RabbitMQOption>>().Value.ClientProvidedName
+                };
 
-                return new EventBusRabbitMQ(
-                    rabbitMQPersistentConnection,
-                    logger,
-                    sp,
-                    sp.GetRequiredService<IOptions<RabbitMQOption>>(),
-                    sp.GetRequiredService<IOptions<EventBusSubscriptionInfo>>());
+                return factory.CreateConnectionAsync().GetAwaiter().GetResult();
             });
+
+            services.AddSingleton<IEventBus, EventBusRabbitMQ>();
 
             return new EventBusBuilder(services);
         }

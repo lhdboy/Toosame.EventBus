@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -34,23 +34,23 @@ namespace Toosame.EventBus.RabbitMQ
         readonly string _deadletterQueueName;
         readonly string _deadletterRoutingKey;
 
-        readonly IRabbitMQPersistentConnection _persistentConnection;
         readonly ILogger<EventBusRabbitMQ> _logger;
         readonly RabbitMQOption _option;
         readonly EventBusSubscriptionInfo _subscriptionInfo;
         readonly IServiceProvider _serviceProvider;
+        readonly IConnection _rabbitMQConnection;
 
         IChannel _consumerChannel;
         IChannel _deadletterChannel;
 
         public EventBusRabbitMQ(
-            IRabbitMQPersistentConnection persistentConnection,
+            IConnection connection,
             ILogger<EventBusRabbitMQ> logger,
             IServiceProvider serviceProvider,
             IOptions<RabbitMQOption> options,
             IOptions<EventBusSubscriptionInfo> subscriptionOptions)
         {
-            _persistentConnection = persistentConnection ?? throw new ArgumentNullException(nameof(persistentConnection));
+            _rabbitMQConnection = connection ?? throw new ArgumentNullException(nameof(connection));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _serviceProvider = serviceProvider;
             _option = options.Value;
@@ -76,9 +76,6 @@ namespace Toosame.EventBus.RabbitMQ
         {
             if (@event == null || !@event.Any()) return;
 
-            if (!_persistentConnection.IsConnected)
-                await _persistentConnection.TryConnectAsync();
-
             var policy = RetryPolicy.Handle<BrokerUnreachableException>()
                 .Or<SocketException>()
                 .WaitAndRetry(_option.EventBusRetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
@@ -86,7 +83,8 @@ namespace Toosame.EventBus.RabbitMQ
                     _logger.LogWarning(ex, "Could not publish events: after {Timeout}s ({ExceptionMessage})", $"{time.TotalSeconds:n1}", ex.Message);
                 });
 
-            using var channel = await _persistentConnection.CreateModelAsync();
+            using var channel = await _rabbitMQConnection?.CreateChannelAsync()
+                ?? throw new InvalidOperationException("RabbitMQ connection is not open");
 
             if (_logger.IsEnabled(LogLevel.Trace))
             {
@@ -173,7 +171,7 @@ namespace Toosame.EventBus.RabbitMQ
             _deadletterChannel ??= await CreateDeadletterConsumerChannelAsync(cancellationToken);
 
             //绑定死信队列
-            await _consumerChannel.QueueBindAsync(_deadletterQueueName,
+            await _deadletterChannel.QueueBindAsync(_deadletterQueueName,
                 _deadletterBrokerName,
                 _deadletterRoutingKey,
                 cancellationToken: cancellationToken);
@@ -182,7 +180,7 @@ namespace Toosame.EventBus.RabbitMQ
 
             deadletterConsumer.ReceivedAsync += AsyncDeadletterConsumer_Received;
 
-            await _consumerChannel.BasicConsumeAsync(
+            await _deadletterChannel.BasicConsumeAsync(
                 queue: _deadletterQueueName,
                 autoAck: false,
                 consumer: deadletterConsumer,
@@ -194,7 +192,7 @@ namespace Toosame.EventBus.RabbitMQ
             DeadletterEvent deadletterEvent = new()
             {
                 Payload = Encoding.UTF8.GetString(eventArgs.Body.Span),
-                ConsumerName = _persistentConnection.ClientProvidedName,
+                ConsumerName = _option.ClientProvidedName,
             };
 
             var body = SerializeMessage(deadletterEvent);
@@ -319,12 +317,10 @@ namespace Toosame.EventBus.RabbitMQ
 
         async Task<IChannel> CreateConsumerChannelAsync(CancellationToken cancellationToken)
         {
-            if (!_persistentConnection.IsConnected)
-                await _persistentConnection.TryConnectAsync();
-
             _logger.LogTrace("Creating RabbitMQ consumer channel");
 
-            var channel = await _persistentConnection.CreateModelAsync();
+            IChannel channel = await _rabbitMQConnection?.CreateChannelAsync(cancellationToken: cancellationToken)
+                 ?? throw new InvalidOperationException("RabbitMQ connection is not open");
 
             await channel.ExchangeDeclareAsync(
                 exchange: _option.EventBusBrokeName,
@@ -356,12 +352,11 @@ namespace Toosame.EventBus.RabbitMQ
 
         async Task<IChannel> CreateDeadletterConsumerChannelAsync(CancellationToken cancellationToken)
         {
-            if (!_persistentConnection.IsConnected)
-                await _persistentConnection.TryConnectAsync();
-
             _logger.LogTrace("Creating RabbitMQ deadletter consumer channel");
 
-            var channel = await _persistentConnection.CreateModelAsync();
+            IChannel channel = await _rabbitMQConnection?.CreateChannelAsync(cancellationToken: cancellationToken)
+                 ?? throw new InvalidOperationException("RabbitMQ connection is not open");
+
             await channel.ExchangeDeclareAsync(
                 exchange: _deadletterBrokerName,
                 type: "direct",
