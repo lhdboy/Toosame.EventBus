@@ -7,6 +7,7 @@ using RabbitMQ.Client;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 using Toosame.EventBus.Abstractions;
 using Toosame.EventBus.Events;
@@ -42,6 +43,26 @@ namespace Microsoft.Extensions.Hosting
 
                 // This list will also be used to subscribe to events from the underlying message broker implementation.
                 o.EventTypes[typeof(T).Name] = typeof(T);
+            });
+
+            return eventBusBuilder;
+        }
+
+        public static IEventBusBuilder AddBeforeConsumeBehaviour(this IEventBusBuilder eventBusBuilder, Func<IServiceProvider, string, string, Type, Task> beforeFunc)
+        {
+            eventBusBuilder.Services.Configure<EventBusSubscriptionInfo>(o =>
+            {
+                o.BeforeBehavior = beforeFunc;
+            });
+
+            return eventBusBuilder;
+        }
+
+        public static IEventBusBuilder AddAfterConsumeBehaviour(this IEventBusBuilder eventBusBuilder, Func<IServiceProvider, string, string, Type, Task> afterFunc)
+        {
+            eventBusBuilder.Services.Configure<EventBusSubscriptionInfo>(o =>
+            {
+                o.AfterBehavior = afterFunc;
             });
 
             return eventBusBuilder;

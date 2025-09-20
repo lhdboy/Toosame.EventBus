@@ -403,11 +403,17 @@ namespace Toosame.EventBus.RabbitMQ
 
             // REVIEW: This could be done in parallel
 
+            if (_subscriptionInfo.BeforeBehavior != null)
+                await _subscriptionInfo.BeforeBehavior(scope.ServiceProvider, eventName, message, eventType);
+
             // Get all the handlers using the event type as the key
             foreach (var handler in scope.ServiceProvider.GetKeyedServices<IIntegrationEventHandler>(eventType))
             {
                 await handler.Handle(integrationEvent);
             }
+
+            if (_subscriptionInfo.AfterBehavior != null)
+                await _subscriptionInfo.AfterBehavior(scope.ServiceProvider, eventName, message, eventType);
 
             return true;
         }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
+using System.Threading.Tasks;
 
 namespace Toosame.EventBus.Abstractions
 {
@@ -10,6 +11,10 @@ namespace Toosame.EventBus.Abstractions
         public Dictionary<string, Type> EventTypes { get; } = [];
 
         public JsonSerializerOptions JsonSerializerOptions { get; } = new(DefaultSerializerOptions);
+
+        public Func<IServiceProvider, string, string, Type, Task>? BeforeBehavior { get; set; }
+
+        public Func<IServiceProvider, string, string, Type, Task>? AfterBehavior { get; set; }
 
         internal static readonly JsonSerializerOptions DefaultSerializerOptions = new()
         {
