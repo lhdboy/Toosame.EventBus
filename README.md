@@ -1,4 +1,4 @@
-﻿# Toosame.EventBus
+# Toosame.EventBus
 
 An Event Bus Based on RabbitMQ, whose core code is from [eShopOnContainers](https://github.com/dotnet-architecture/eShopOnContainers), I just pulled it out and made some extensions, fixes and improvements.
 
@@ -7,7 +7,7 @@ I currently only use it for microservices. If your project has only one ASP. NET
 ## Install from Nuget.org
 
 ```
-PM> Install-Package Toosame.EventBus.RabbitMQ -Version 2.1.0
+PM> Install-Package Toosame.EventBus.RabbitMQ -Version 9.2.0
 ```
 
 ## Using (Publish Event)
@@ -78,7 +78,7 @@ public class HomeController : ControllerBase
 
 ***
 
-## Setup (ASP.NET Core 9.0)
+## Setup (ASP.NET Core 10.0)
 
 You can subscribe to the event you just created here.
 
@@ -112,5 +112,33 @@ You can subscribe to the event you just created here.
 ### 3.Add `YourHostedService.cs`
 
 ```CSharp
-    builder.Services.AddHostedService<YourHostedService>();
+    builder.Services.AddHostedService<EventBusBackgroundService>();
+```
+
+```CSharp
+public class EventBusBackgroundService : BackgroundService
+{
+    readonly IEventBus _eventBus;
+    readonly ILogger<EventBusBackgroundService> _logger;
+
+    public EventBusBackgroundService(
+        IEventBus eventBus,
+        ILogger<EventBusBackgroundService> logger)
+    {
+        _eventBus = eventBus;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            await _eventBus.StartAsync(stoppingToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error description...");
+        }
+    }
+}
 ```
